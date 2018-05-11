@@ -283,7 +283,13 @@ public class BeanDefinitionInjectProcessor extends AbstractInjectAnnotationProce
     }
 
     private String getPropertyMetadataTypeReference(TypeMirror valueType) {
-        return modelUtils.isOptional(valueType) ? genericUtils.getFirstTypeArgument(valueType).map(TypeMirror::toString).orElse(valueType.toString()) : valueType.toString();
+        if (modelUtils.isOptional(valueType)) {
+            return genericUtils.getFirstTypeArgument(valueType)
+                .map(typeMirror -> modelUtils.resolveTypeName(typeMirror))
+                .orElseGet(() -> modelUtils.resolveTypeName(valueType));
+        } else {
+            return modelUtils.resolveTypeName(valueType);
+        }
     }
 
     /**
@@ -1399,7 +1405,13 @@ public class BeanDefinitionInjectProcessor extends AbstractInjectAnnotationProce
                         break;
                     default:
                         if (kind.isPrimitive()) {
-                            String typeName = typeMirror.toString();
+                            String typeName;
+                            if (typeMirror instanceof DeclaredType) {
+                                DeclaredType dt = (DeclaredType) typeMirror;
+                                typeName = dt.asElement().getSimpleName().toString();
+                            } else {
+                                typeName = typeMirror.toString();
+                            }
                             Object argType = modelUtils.classOfPrimitiveFor(typeName);
                             params.addParameter(argName, argType);
                         }

@@ -13,17 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package io.micronaut.http.client.docs.binding;
+
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.Body;
+import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Post;
+import io.micronaut.http.annotation.Status;
+
 /**
- * This package contains client APIs, service discovery and distributed configuration integration between Micronaut and Consul (https://www.consul.io)
- *
  * @author graemerocher
  * @since 1.0
  */
-@Configuration
-@Requires(classes = {AWSClientConfiguration.class, AWSServiceDiscovery.class})
-package io.micronaut.discovery.aws;
+@Controller("/binding")
+public class BookController {
 
-import com.amazonaws.services.servicediscovery.AWSServiceDiscovery;
-import io.micronaut.configurations.aws.AWSClientConfiguration;
-import io.micronaut.context.annotation.Configuration;
-import io.micronaut.context.annotation.Requires;
+    @Post(uri = "/book/{title}", consumes = {MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+    @Status(HttpStatus.CREATED)
+    Book save(@Body Book book) {
+        return book;
+    }
+}

@@ -16,7 +16,6 @@
 package io.micronaut.management.endpoint.health
 
 import io.micronaut.context.ApplicationContext
-import io.micronaut.context.env.MapPropertySource
 import io.micronaut.http.HttpStatus
 import io.micronaut.http.client.RxHttpClient
 import io.micronaut.management.health.aggregator.RxJavaHealthAggregator
@@ -120,6 +119,7 @@ class HealthEndpointSpec extends Specification {
     void "test health endpoint"() {
         given:
         EmbeddedServer embeddedServer = ApplicationContext.run(EmbeddedServer, [
+                'endpoints.health.sensitive': false,
                 'datasources.one.url': 'jdbc:h2:mem:oneDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE',
                 'datasources.two.url': 'jdbc:h2:mem:twoDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE'
         ])
@@ -153,7 +153,7 @@ class HealthEndpointSpec extends Specification {
 
     void "test health endpoint with a high diskspace threshold"() {
         given:
-        EmbeddedServer embeddedServer = ApplicationContext.run(EmbeddedServer, ['endpoints.health.disk-space.threshold': '9999GB'])
+        EmbeddedServer embeddedServer = ApplicationContext.run(EmbeddedServer, ['endpoints.health.sensitive': false, 'endpoints.health.disk-space.threshold': '9999GB'])
         URL server = embeddedServer.getURL()
         RxHttpClient rxClient = embeddedServer.applicationContext.createBean(RxHttpClient, server)
 
@@ -175,6 +175,7 @@ class HealthEndpointSpec extends Specification {
     void "test health endpoint with a non response jdbc datasource"() {
         given:
         EmbeddedServer embeddedServer = ApplicationContext.run(EmbeddedServer, [
+                'endpoints.health.sensitive': false,
                 'datasources.one.url': 'jdbc:h2:mem:oneDb;MVCC=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE',
                 'datasources.two.url': 'jdbc:mysql://localhost:59654/foo'
         ])

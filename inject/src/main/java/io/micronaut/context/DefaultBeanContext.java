@@ -18,10 +18,7 @@ package io.micronaut.context;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.micronaut.context.annotation.Executable;
-import io.micronaut.context.annotation.Primary;
-import io.micronaut.context.annotation.Replaces;
-import io.micronaut.context.annotation.Secondary;
+import io.micronaut.context.annotation.*;
 import io.micronaut.context.event.ApplicationEventListener;
 import io.micronaut.context.event.BeanCreatedEvent;
 import io.micronaut.context.event.BeanCreatedEventListener;
@@ -333,6 +330,18 @@ public class DefaultBeanContext implements BeanContext {
             } else {
                 return beanDefinition.findPossibleMethods(method)
                     .findFirst()
+                    .filter(m -> {
+                        Class[] argTypes = m.getArgumentTypes();
+                        if (argTypes.length == arguments.length) {
+                            for (int i = 0; i < argTypes.length; i++) {
+                                if (!arguments[i].isAssignableFrom(argTypes[i])) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
+                        return false;
+                    })
                     .map((ExecutableMethod executableMethod) -> new BeanExecutionHandle(this, beanType, qualifier, executableMethod));
             }
         }
@@ -342,10 +351,9 @@ public class DefaultBeanContext implements BeanContext {
     @Override
     public <T, R> Optional<ExecutableMethod<T, R>> findExecutableMethod(Class<T> beanType, String method, Class[] arguments) {
         if (beanType != null) {
-
-            Optional<BeanDefinition<T>> foundBean = findBeanDefinition(beanType);
-            if (foundBean.isPresent()) {
-                BeanDefinition<T> beanDefinition = foundBean.get();
+            Collection<BeanDefinition<T>> definitions = getBeanDefinitions(beanType);
+            if (!definitions.isEmpty()) {
+                BeanDefinition<T> beanDefinition = definitions.iterator().next();
                 Optional<ExecutableMethod<T, R>> foundMethod = beanDefinition.findMethod(method, arguments);
                 if (foundMethod.isPresent()) {
                     return foundMethod;
@@ -1043,7 +1051,10 @@ public class DefaultBeanContext implements BeanContext {
                 });
             }
             if (!replacedTypes.isEmpty()) {
-                candidates.removeIf(definition -> replacedTypes.contains(definition.getBeanType()));
+                candidates.removeIf(definition ->
+                        replacedTypes.contains(definition.getBeanType())
+                                && !definition.hasDeclaredStereotype(Infrastructure.class)
+                );
             }
 
             if (LOG.isDebugEnabled()) {

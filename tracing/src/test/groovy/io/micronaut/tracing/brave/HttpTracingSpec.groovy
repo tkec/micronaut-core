@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 original authors
+ * Copyright 2017-2018 original authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,9 @@
  */
 package io.micronaut.tracing.brave
 
-import brave.Span
 import brave.SpanCustomizer
 import brave.propagation.StrictCurrentTraceContext
 import io.micronaut.context.ApplicationContext
-import io.micronaut.context.env.PropertySource
 import io.micronaut.http.HttpResponse
 import io.micronaut.http.annotation.Controller
 import io.micronaut.http.annotation.Get
@@ -27,7 +25,6 @@ import io.micronaut.http.client.Client
 import io.micronaut.http.client.HttpClient
 import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.runtime.server.EmbeddedServer
-import io.reactivex.Flowable
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 import spock.lang.Specification

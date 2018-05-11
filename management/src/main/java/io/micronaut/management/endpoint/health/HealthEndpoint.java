@@ -32,7 +32,7 @@ import java.security.Principal;
  * @author James Kleeh
  * @since 1.0
  */
-@Endpoint(HealthEndpoint.NAME)
+@Endpoint(value = HealthEndpoint.NAME, defaultSensitive = false)
 public class HealthEndpoint {
 
     /**
@@ -50,8 +50,8 @@ public class HealthEndpoint {
     private HealthLevelOfDetailResolver healthLevelOfDetailResolver;
 
     /**
-     * @param healthAggregator The {@link HealthAggregator}
-     * @param healthIndicators The {@link HealthIndicator}
+     * @param healthAggregator            The {@link HealthAggregator}
+     * @param healthIndicators            The {@link HealthIndicator}
      * @param healthLevelOfDetailResolver The {@link HealthLevelOfDetailResolver}
      */
     public HealthEndpoint(HealthAggregator healthAggregator,
@@ -63,12 +63,13 @@ public class HealthEndpoint {
     }
 
     /**
+     * @param principal Authenticated user
      * @return The health information as a {@link Single}
      */
     @Read
     Single getHealth(@Nullable Principal principal) {
 
         return Single.fromPublisher(healthAggregator.aggregate(healthIndicators,
-                healthLevelOfDetailResolver.levelOfDetail(principal)));
+            healthLevelOfDetailResolver.levelOfDetail(principal)));
     }
 }

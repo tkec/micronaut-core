@@ -15,12 +15,6 @@
  */
 package io.micronaut.http.client.aop
 
-import io.micronaut.context.ApplicationContext
-import io.micronaut.http.annotation.Controller
-import io.micronaut.http.annotation.Delete
-import io.micronaut.http.annotation.Get
-import io.micronaut.http.annotation.Patch
-import io.micronaut.http.annotation.Post
 import io.reactivex.Flowable
 import io.reactivex.Maybe
 import io.micronaut.context.ApplicationContext
@@ -46,8 +40,13 @@ import java.util.concurrent.atomic.AtomicLong
  */
 class PublisherCrudSpec extends Specification {
 
-    @Shared @AutoCleanup ApplicationContext context = ApplicationContext.run()
-    @Shared EmbeddedServer embeddedServer = context.getBean(EmbeddedServer).start()
+    @Shared
+    @AutoCleanup
+    ApplicationContext context = ApplicationContext.run()
+
+    @Shared
+    @AutoCleanup
+    EmbeddedServer embeddedServer = context.getBean(EmbeddedServer).start()
 
     void "test CRUD operations on generated client that returns blocking responses"() {
         given:

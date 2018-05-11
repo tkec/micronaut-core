@@ -16,7 +16,6 @@
 package io.micronaut.http.client.aop
 
 import io.micronaut.context.ApplicationContext
-import io.micronaut.context.ApplicationContext
 import io.micronaut.http.annotation.Controller
 import io.micronaut.http.annotation.Delete
 import io.micronaut.http.annotation.Get
@@ -39,8 +38,13 @@ import java.util.concurrent.atomic.AtomicLong
  */
 class CompletableFutureFallbackSpec extends Specification {
 
-    @Shared @AutoCleanup ApplicationContext context = ApplicationContext.run()
-    @Shared EmbeddedServer embeddedServer = context.getBean(EmbeddedServer).start()
+    @Shared
+    @AutoCleanup
+    ApplicationContext context = ApplicationContext.run()
+
+    @Shared
+    @AutoCleanup
+    EmbeddedServer embeddedServer = context.getBean(EmbeddedServer).start()
 
     void "test that fallbacks are called for CompletableFuture responses"() {
         given:
