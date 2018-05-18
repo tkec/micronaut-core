@@ -455,7 +455,7 @@ class CreateServiceCommand extends ArgumentCompletingCommand implements ProfileR
     }
 
     @CompileDynamic
-    protected void replaceBuildTokens(String build, Profile profile, List features, File targetDirectory) {
+    protected void replaceBuildTokens(String build, Profile profile, List<Feature> features, File targetDirectory) {
         AntBuilder ant = new ConsoleAntBuilder()
 
         Map tokens
@@ -464,6 +464,29 @@ class CreateServiceCommand extends ArgumentCompletingCommand implements ProfileR
         }
         if (build == "maven") {
             tokens = new MavenBuildTokens().getTokens(profile, features)
+        }
+
+        if(tokens) {
+            List<String> requestedFeatureNames = features.findAll { it.requested }*.name
+            List<String> allFeatureNames = features*.name
+            String testFramework = null
+            String sourceLanguage = null
+
+            if(requestedFeatureNames) {
+                testFramework = evaulateTestFramework(requestedFeatureNames)
+                sourceLanguage = evaulateSourceLanguage(requestedFeatureNames)
+            }
+
+            if(!testFramework) {
+                testFramework = evaulateTestFramework(allFeatureNames)
+            }
+
+            if(!sourceLanguage) {
+                sourceLanguage = evaulateSourceLanguage(allFeatureNames)
+            }
+
+            tokens.put("testFramework", testFramework)
+            tokens.put("sourceLanguage", sourceLanguage)
         }
 
         ant.replace(dir: targetDirectory) {
@@ -482,15 +505,41 @@ class CreateServiceCommand extends ArgumentCompletingCommand implements ProfileR
         }
     }
 
+    protected String evaulateTestFramework(List<String> features) {
+        String testFramework = null
+        if(features.contains("spock"))
+            testFramework = "spock"
+        else if(features.contains("junit"))
+            testFramework = "junit"
+        else if(features.contains("spek"))
+            testFramework = "spek"
+
+        testFramework
+    }
+
+    protected String evaulateSourceLanguage(List<String> features) {
+        String sourceLanguage = null
+        if(features.contains("groovy"))
+            sourceLanguage = "groovy"
+        else if(features.contains("kotlin"))
+            sourceLanguage = "kotlin"
+        else if(features.contains("java"))
+            sourceLanguage = "java"
+
+        sourceLanguage
+    }
+
     protected String evaluateProfileName(CommandLine mainCommandLine) {
         mainCommandLine.optionValue(PROFILE_FLAG)?.toString() ?: getDefaultProfile()
     }
 
     protected Iterable<Feature> evaluateFeatures(Profile profile, List<String> requestedFeatures) {
         Set<Feature> features = []
+        List<String> validFeatureNames
+
         if (requestedFeatures) {
             List<String> allFeatureNames = profile.features*.name
-            List<String> validFeatureNames = requestedFeatures.intersect(allFeatureNames) as List<String>
+            validFeatureNames = requestedFeatures.intersect(allFeatureNames) as List<String>
             requestedFeatures.removeAll(allFeatureNames)
             requestedFeatures.each { String invalidFeature ->
                 List possibleSolutions = allFeatureNames.findAll {
@@ -515,6 +564,16 @@ class CreateServiceCommand extends ArgumentCompletingCommand implements ProfileR
 
         for (int i = 0; i < features.size(); i++) {
             features.addAll(features[i].getDependentFeatures(profile))
+        }
+
+        if(validFeatureNames) {
+            features = features.collect { feature ->
+                if(validFeatureNames.contains(feature.name)) {
+                    feature.setRequested(true)
+                }
+
+                feature
+            }.toSet()
         }
 
         features
