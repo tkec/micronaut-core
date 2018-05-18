@@ -518,7 +518,7 @@ public class DefaultEnvironment extends PropertySourcePropertyResolver implement
 
         EnvironmentsAndPackage environmentsAndPackage = new EnvironmentsAndPackage();
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        Set<String> enviroments = environmentsAndPackage.enviroments;
+        Set<String> environments = environmentsAndPackage.enviroments;
 
         // analyze stack to check for Android / Test env
         for (StackTraceElement stackTraceElement : stackTrace) {
@@ -526,7 +526,7 @@ public class DefaultEnvironment extends PropertySourcePropertyResolver implement
             if (methodName.contains("$spock_")) {
                 String className = stackTraceElement.getClassName();
                 environmentsAndPackage.aPackage = NameUtils.getPackageName(className);
-                enviroments.add(TEST);
+                environments.add(TEST);
             } else if ("main".equals(methodName)) {
                 String packageName = NameUtils.getPackageName(stackTraceElement.getClassName());
                 if (environmentsAndPackage.aPackage == null) {
@@ -535,29 +535,29 @@ public class DefaultEnvironment extends PropertySourcePropertyResolver implement
             } else {
                 String className = stackTraceElement.getClassName();
                 if (Stream.of("org.spockframework", "org.junit").anyMatch(className::startsWith)) {
-                    enviroments.add(TEST);
+                    environments.add(TEST);
                 } else if (className.startsWith("com.android")) {
-                    enviroments.add(ANDROID);
+                    environments.add(ANDROID);
                 }
             }
         }
 
-        if (!enviroments.contains(ANDROID)) {
+        if (!environments.contains(ANDROID)) {
             // deduce k8s
             if (StringUtils.isNotEmpty(System.getenv(K8S_ENV))) {
-                enviroments.add(Environment.KUBERNETES);
-                enviroments.add(Environment.CLOUD);
+                environments.add(Environment.KUBERNETES);
+                environments.add(Environment.CLOUD);
             }
             // deduce CF
             if (StringUtils.isNotEmpty(System.getenv(PCF_ENV))) {
-                enviroments.add(Environment.CLOUD_FOUNDRY);
-                enviroments.add(Environment.CLOUD);
+                environments.add(Environment.CLOUD_FOUNDRY);
+                environments.add(Environment.CLOUD);
             }
 
             // deduce heroku
             if (StringUtils.isNotEmpty(System.getenv(HEROKU_DYNO))) {
-                enviroments.add(Environment.HEROKU);
-                enviroments.add(Environment.CLOUD);
+                environments.add(Environment.HEROKU);
+                environments.add(Environment.CLOUD);
             }
 
             ComputePlatform computePlatform = determineCloudProvider();
@@ -565,23 +565,23 @@ public class DefaultEnvironment extends PropertySourcePropertyResolver implement
                 switch (computePlatform) {
                     case GOOGLE_COMPUTE:
                         //instantiate bean for GC metadata discovery
-                        enviroments.add(GOOGLE_COMPUTE);
-                        enviroments.add(Environment.CLOUD);
+                        environments.add(GOOGLE_COMPUTE);
+                        environments.add(Environment.CLOUD);
                         break;
                     case AMAZON_EC2:
                         //instantiate bean for ec2 metadata discovery
-                        enviroments.add(AMAZON_EC2);
-                        enviroments.add(Environment.CLOUD);
+                        environments.add(AMAZON_EC2);
+                        environments.add(Environment.CLOUD);
                         break;
                     case AZURE:
                         // not yet implemented
-                        enviroments.add(AZURE);
-                        enviroments.add(Environment.CLOUD);
+                        environments.add(AZURE);
+                        environments.add(Environment.CLOUD);
                         break;
                     case IBM:
                         // not yet implemented
-                        enviroments.add(IBM);
-                        enviroments.add(Environment.CLOUD);
+                        environments.add(IBM);
+                        environments.add(Environment.CLOUD);
                         break;
                     case OTHER:
                         // do nothing here
@@ -597,10 +597,10 @@ public class DefaultEnvironment extends PropertySourcePropertyResolver implement
             .filter(Objects::nonNull)
             .flatMap(s -> Arrays.stream(s.split(",")))
             .map(String::trim)
-            .forEach(enviroments::add);
+            .forEach(environments::add);
 
-        if (LOG.isInfoEnabled() && !enviroments.isEmpty()) {
-            LOG.info("Established active environments: {}", enviroments);
+        if (LOG.isInfoEnabled() && !environments.isEmpty()) {
+            LOG.info("Established active environments: {}", environments);
         }
 
         return environmentsAndPackage;

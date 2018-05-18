@@ -117,7 +117,10 @@ cloud:
     jaeger: Tracing with Jaeger
 serverlessFunctions:
   title: Serverless Functions
-  lambdaFunctions: AWS Lambda Function Support
+  writingFunctions: Writing Functions
+  runningFunctions: Running Functions    
+  lambdaFunctions: Deploying Functions to AWS Lambda 
+  callingFunctions: Calling Functions with FunctionClient
 dataAccess:
   title: Configurations for Data Access
   sqlSupport: Configuring a SQL Data Source
@@ -134,7 +137,7 @@ management:
   buildingEndpoints:
     title: Creating Endpoints
     endpointAnnotation: The Endpoint Annotation
-    endpointMethod: Executable Method
+    endpointMethod: Endpoint Methods
     endpointConfiguration: Endpoint Configuration
   providedEndpoints:
     title: Built-In Endpoints
