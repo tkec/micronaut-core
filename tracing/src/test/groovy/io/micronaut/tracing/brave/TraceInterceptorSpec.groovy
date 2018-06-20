@@ -24,6 +24,7 @@ import io.reactivex.Single
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import spock.lang.Specification
+import spock.util.concurrent.PollingConditions
 
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -82,15 +83,19 @@ class TraceInterceptorSpec extends Specification {
 
         when:
         String result = tracedService.mono("test").block()
+        PollingConditions conditions = new PollingConditions(timeout: 3)
 
         then:
-        result == "test"
-        reporter.spans[0].tags().get("more.stuff") == 'test'
-        reporter.spans[0].tags().get("class") == 'TracedService'
-        reporter.spans[0].tags().get("method") == 'mono'
-        reporter.spans[0].tags().get("foo") == "bar"
-        reporter.spans[0].name() == 'trace-mono'
+        conditions.eventually {
+            result == "test"
+            reporter.spans[0].tags().get("more.stuff") == 'test'
+            reporter.spans[0].tags().get("class") == 'TracedService'
+            reporter.spans[0].tags().get("method") == 'mono'
+            reporter.spans[0].tags().get("foo") == "bar"
+            reporter.spans[0].name() == 'trace-mono'
+        }
     }
+
     ApplicationContext buildContext() {
         def reporter = new TestReporter()
         ApplicationContext.build(
@@ -99,6 +104,7 @@ class TraceInterceptorSpec extends Specification {
         ).singletons(reporter)
          .start()
     }
+
     @Singleton
     static class TracedService {
 

@@ -18,17 +18,13 @@ package io.micronaut.http.netty.stream;
 
 import io.micronaut.http.netty.reactive.HandlerPublisher;
 import io.micronaut.http.netty.reactive.HandlerSubscriber;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
-import io.netty.handler.codec.http.FullHttpMessage;
-import io.netty.handler.codec.http.HttpContent;
-import io.netty.handler.codec.http.HttpMessage;
-import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.channel.*;
+import io.netty.handler.codec.http.*;
 import io.netty.util.ReferenceCountUtil;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -38,11 +34,14 @@ import java.util.Queue;
  *
  * @param <In>  The input Http Message
  * @param <Out> The output Http Message
+ *
+ * @author jroper
  * @author Graeme Rocher
  * @since 1.0
  */
 abstract class HttpStreamsHandler<In extends HttpMessage, Out extends HttpMessage> extends ChannelDuplexHandler {
 
+    private static final Logger LOG = LoggerFactory.getLogger(HttpStreamsHandler.class);
     private final Queue<Outgoing> outgoing = new LinkedList<>();
     private final Class<In> inClass;
     private final Class<Out> outClass;
@@ -227,6 +226,9 @@ abstract class HttpStreamsHandler<In extends HttpMessage, Out extends HttpMessag
         if (currentlyStreamedMessage == msg) {
             ignoreBodyRead = true;
             // Need to do a read in case the subscriber ignored a read completed.
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Calling ctx.read() for cancelled subscription");
+            }
             ctx.read();
         }
     }
@@ -317,8 +319,16 @@ abstract class HttpStreamsHandler<In extends HttpMessage, Out extends HttpMessag
             HandlerSubscriber<HttpContent> subscriber = new HandlerSubscriber<HttpContent>(ctx.executor()) {
                 @Override
                 protected void error(Throwable error) {
-                    out.promise.tryFailure(error);
-                    ctx.close();
+                    try {
+
+                        if (LOG.isErrorEnabled()) {
+                            LOG.error("Error occurred writing stream response: " + error.getMessage(), error);
+                        }
+                        ctx.writeAndFlush(new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR))
+                           .addListener(ChannelFutureListener.CLOSE);
+                    } finally {
+                        ctx.read();
+                    }
                 }
 
                 @Override
@@ -350,10 +360,12 @@ abstract class HttpStreamsHandler<In extends HttpMessage, Out extends HttpMessag
                     flushNext(ctx);
                 })
             );
+            ctx.read();
         } else {
             outgoing.remove().promise.setSuccess();
             sentOutMessage(ctx);
             flushNext(ctx);
+            ctx.read();
         }
     }
 
@@ -365,7 +377,11 @@ abstract class HttpStreamsHandler<In extends HttpMessage, Out extends HttpMessag
      */
     private void removeHandlerIfActive(ChannelHandlerContext ctx, String name) {
         if (ctx.channel().isActive()) {
-            ctx.pipeline().remove(name);
+            ChannelPipeline pipeline = ctx.pipeline();
+            ChannelHandler handler = pipeline.get(name);
+            if (handler != null) {
+                pipeline.remove(name);
+            }
         }
     }
 

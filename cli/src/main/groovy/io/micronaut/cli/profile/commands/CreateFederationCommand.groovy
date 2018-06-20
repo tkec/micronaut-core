@@ -25,8 +25,8 @@ import io.micronaut.cli.console.parsing.CommandLine
 import io.micronaut.cli.io.support.GradleBuildTokens
 import io.micronaut.cli.io.support.MavenBuildTokens
 import io.micronaut.cli.profile.ExecutionContext
-import io.micronaut.cli.profile.Feature
 import io.micronaut.cli.profile.Profile
+import io.micronaut.cli.util.VersionInfo
 
 import java.nio.file.Paths
 
@@ -37,7 +37,7 @@ import java.nio.file.Paths
  * @since 1.0
  */
 @CompileStatic
-class CreateFederationCommand extends CreateServiceCommand {
+class CreateFederationCommand extends CreateAppCommand {
     public static final String NAME = "create-federation"
     public static final String SERVICES_FLAG = "services"
 
@@ -71,7 +71,11 @@ class CreateFederationCommand extends CreateServiceCommand {
         }
 
         final String federationName = commandLine.remainingArgs ? commandLine.remainingArgs[0] : ""
-        final List<String> features = commandLine.optionValue(FEATURES_FLAG)?.toString()?.split(',')?.toList()
+        final String[] featuresArray = commandLine.optionValue(FEATURES_FLAG)?.toString()?.split(',')
+        final Set<String> features = new HashSet<>()
+        if (featuresArray) {
+            features.addAll(featuresArray)
+        }
         services = commandLine.optionValue(SERVICES_FLAG)?.toString()?.split(',')?.toList()
         if (!services) {
             StringBuilder warning = new StringBuilder("Missing required flag: --services= <service1 service2 service3 ..>")
@@ -79,8 +83,8 @@ class CreateFederationCommand extends CreateServiceCommand {
             return false
         }
         final String build = commandLine.hasOption(BUILD_FLAG) ? commandLine.optionValue(BUILD_FLAG) : "gradle"
-        final boolean inPlace = commandLine.hasOption(INPLACE_FLAG) || MicronautCli.isInteractiveModeActive()
-        final String micronautVersion = MicronautCli.getPackage().getImplementationVersion()
+        final boolean inPlace = commandLine.hasOption(INPLACE_FLAG)
+        final String micronautVersion = VersionInfo.getVersion(MicronautCli)
         final String profileName = evaluateProfileName(commandLine)
 
         final File serviceDir = inPlace ? new File('.').canonicalFile : new File(executionContext.baseDir, federationName)
@@ -120,7 +124,6 @@ class CreateFederationCommand extends CreateServiceCommand {
     protected void messageOnComplete(MicronautConsole console, CreateServiceCommandObject command, File targetDir) {
         if (command.profileName == "federation") {
             console.addStatus("Federation created at ${Paths.get(targetDir.path).toAbsolutePath().normalize()}")
-
         }
     }
 

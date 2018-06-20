@@ -26,6 +26,7 @@ import io.micronaut.http.client.RxHttpClient
 import io.micronaut.runtime.context.scope.Refreshable
 import io.micronaut.runtime.server.EmbeddedServer
 import spock.lang.Specification
+import spock.util.concurrent.PollingConditions
 
 /**
  * @author Graeme Rocher
@@ -56,19 +57,26 @@ class RefreshEndpointSpec extends Specification {
         response.body().contains('"foo.bar"')
 
         when:
-        response = rxClient.exchange("/refreshTest", String).blockingFirst()
+        PollingConditions conditions = new PollingConditions(timeout: 3)
+
 
         then:
-        response.code() == HttpStatus.OK.code
-        response.body() == 'changed changed'
+        conditions.eventually {
+            def res = rxClient.exchange("/refreshTest", String).blockingFirst()
+            res.code() == HttpStatus.OK.code
+            res.body() == 'changed changed'
 
+        }
+1
         cleanup:
+        System.setProperty("foo.bar", "")
         rxClient.close()
         embeddedServer.close()
     }
 
     void "test refresh endpoint with all parameter"() {
         given:
+        System.setProperty("foo.bar", "test")
         EmbeddedServer embeddedServer = ApplicationContext.run(EmbeddedServer, ['endpoints.refresh.sensitive': false], "test")
         RxHttpClient rxClient = embeddedServer.applicationContext.createBean(RxHttpClient, embeddedServer.getURL())
 
@@ -99,13 +107,18 @@ class RefreshEndpointSpec extends Specification {
         response.code() == HttpStatus.OK.code
 
         when:
-        response = rxClient.exchange("/refreshTest/external", String).blockingFirst()
+        PollingConditions conditions = new PollingConditions(timeout: 3)
 
         then: "Response is now different"
-        response.code() == HttpStatus.OK.code
-        response.body() != firstResponse
+        conditions.eventually {
+            def res = rxClient.exchange("/refreshTest/external", String).blockingFirst()
+            res.code() == HttpStatus.OK.code
+            res.body() != firstResponse
+        }
+
 
         cleanup:
+        System.setProperty("foo.bar", "")
         rxClient.close()
         embeddedServer.close()
     }

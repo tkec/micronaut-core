@@ -49,16 +49,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -134,12 +125,16 @@ public class DefaultEnvironment extends PropertySourcePropertyResolver implement
         super(conversionService);
         Set<String> specifiedNames = new HashSet<>(3);
         specifiedNames.addAll(CollectionUtils.setOf(names));
-        EnvironmentsAndPackage environmentsAndPackage = getEnvironmentsAndPackage();
-        specifiedNames.addAll(environmentsAndPackage.enviroments);
-        String aPackage = environmentsAndPackage.aPackage;
-        if (aPackage != null) {
-            packages.add(aPackage);
+
+        if (!specifiedNames.contains(Environment.FUNCTION)) {
+            EnvironmentsAndPackage environmentsAndPackage = getEnvironmentsAndPackage();
+            specifiedNames.addAll(environmentsAndPackage.enviroments);
+            String aPackage = environmentsAndPackage.aPackage;
+            if (aPackage != null) {
+                packages.add(aPackage);
+            }
         }
+
         this.classLoader = resourceLoader.getClassLoader();
         this.names = specifiedNames;
         conversionService.addConverter(
@@ -517,27 +512,32 @@ public class DefaultEnvironment extends PropertySourcePropertyResolver implement
 
         EnvironmentsAndPackage environmentsAndPackage = new EnvironmentsAndPackage();
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        ListIterator<StackTraceElement> stackTraceIterator = Arrays.asList(stackTrace).listIterator();
         Set<String> environments = environmentsAndPackage.enviroments;
 
-        // analyze stack to check for Android / Test env
-        for (StackTraceElement stackTraceElement : stackTrace) {
-            String methodName = stackTraceElement.getMethodName();
-            if (methodName.contains("$spock_")) {
-                String className = stackTraceElement.getClassName();
+        while (stackTraceIterator.hasNext()) {
+            StackTraceElement stackTraceElement = stackTraceIterator.next();
+            String className = stackTraceElement.getClassName();
+
+            if (className.startsWith("io.micronaut")) {
+                if (stackTraceIterator.hasNext()) {
+                    StackTraceElement next = stackTrace[stackTraceIterator.nextIndex()];
+                    if (!next.getClassName().startsWith("io.micronaut")) {
+                        environmentsAndPackage.aPackage = NameUtils.getPackageName(next.getClassName());
+                    }
+                }
+            }
+
+            if (stackTraceElement.getMethodName().contains("$spock_")) {
                 environmentsAndPackage.aPackage = NameUtils.getPackageName(className);
+            }
+
+            if (Stream.of("org.spockframework", "org.junit").anyMatch(className::startsWith)) {
                 environments.add(TEST);
-            } else if ("main".equals(methodName)) {
-                String packageName = NameUtils.getPackageName(stackTraceElement.getClassName());
-                if (environmentsAndPackage.aPackage == null) {
-                    environmentsAndPackage.aPackage = packageName;
-                }
-            } else {
-                String className = stackTraceElement.getClassName();
-                if (Stream.of("org.spockframework", "org.junit").anyMatch(className::startsWith)) {
-                    environments.add(TEST);
-                } else if (className.startsWith("com.android")) {
-                    environments.add(ANDROID);
-                }
+            }
+
+            if (className.startsWith("com.android")) {
+                environments.add(ANDROID);
             }
         }
 
@@ -658,6 +658,10 @@ public class DefaultEnvironment extends PropertySourcePropertyResolver implement
     }
 
     private static ComputePlatform determineCloudProvider() {
+        if (System.getenv("TRAVIS") != null) {
+            return ComputePlatform.OTHER;
+        }
+
         String computePlatform = System.getProperty(CLOUD_PLATFORM_PROPERTY);
         if (computePlatform != null) {
 

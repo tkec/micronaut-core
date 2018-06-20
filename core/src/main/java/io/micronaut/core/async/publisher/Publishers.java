@@ -80,6 +80,7 @@ public class Publishers {
     public static <T> Publisher<T> fromCompletableFuture(Supplier<CompletableFuture<T>> futureSupplier) {
         return new CompletableFuturePublisher<>(futureSupplier);
     }
+
     /**
      * Build a {@link Publisher} from a {@link CompletableFuture}.
      *
@@ -171,8 +172,8 @@ public class Publishers {
             @Override
             protected void doOnNext(T message) {
                 try {
-                    consumer.accept(message);
                     actual.onNext(message);
+                    consumer.accept(message);
                 } catch (Throwable e) {
                     onError(e);
                 }
@@ -284,9 +285,7 @@ public class Publishers {
             @SuppressWarnings("unchecked") Publisher<T> futurePublisher = (Publisher<T>) Publishers.fromCompletableFuture(() -> ((CompletableFuture) object));
             return ConversionService.SHARED.convert(futurePublisher, publisherType)
                     .orElseThrow(() -> new IllegalArgumentException("Unsupported Reactive type: " + object.getClass()));
-        }
-        else {
-
+        } else {
             return ConversionService.SHARED.convert(object, publisherType)
                     .orElseThrow(() -> new IllegalArgumentException("Unsupported Reactive type: " + object.getClass()));
         }

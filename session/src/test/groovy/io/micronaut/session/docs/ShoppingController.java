@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 original authors
+ * Copyright 2017-2018 original authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.micronaut.session.docs;
 
 // tag::imports[]
@@ -38,7 +39,7 @@ public class ShoppingController {
     @Get("/cart")
     @SessionValue(ATTR_CART) // <1>
     Cart viewCart(@SessionValue @Nullable Cart cart) { // <2>
-        if(cart == null) {
+        if (cart == null) {
             cart = new Cart();
         }
         return cart;
@@ -48,7 +49,7 @@ public class ShoppingController {
     // tag::add[]
     @Post("/cart/{name}")
     Cart addItem(Session session, @NotBlank String name) { // <2>
-        Cart cart = session.get(ATTR_CART, Cart.class).orElseGet(()-> { // <3>
+        Cart cart = session.get(ATTR_CART, Cart.class).orElseGet(() -> { // <3>
             Cart newCart = new Cart();
             session.put(ATTR_CART, newCart); // <4>
             return newCart;
@@ -61,7 +62,7 @@ public class ShoppingController {
     // tag::clear[]
     @Post("/cart/clear")
     void clearCart(@Nullable Session session) {
-        if(session != null) {
+        if (session != null) {
             session.remove(ATTR_CART);
         }
     }

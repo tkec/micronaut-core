@@ -1,43 +1,62 @@
 Sometimes with distributing applications, bad things happen. Thus having a good way to handle errors is important.
 
-To define local error handling simply define a method in a controller where the last argument is the type of the exception you wish to handle. For example the following method will handling JSON parse exceptions from Jackson for the scope of the declaring controller:
+=== Status Handlers
 
-.Handling Controller Exceptions
+The api:http.annotation.Error[] annotation supports defining either an exception class or an HTTP status. Methods decorated with the annotation will be invoked as the result of other controller methods. The annotation also supports the notion of global and local, local being the default.
+
+Local error handlers will only respond to methods defined in the same controller. Global error handlers can respond to any method in any controller. A local error handler is always searched for first when resolving which handler to execute.
+
+TIP: When defining an error handler for an exception, you can specify the exception instance as an argument to the method and omit the exception property of the annotation.
+
+=== Local Error Handling
+
+For example the following method will handling JSON parse exceptions from Jackson for the scope of the declaring controller:
+
+.Local exception handler
 [source,java]
 ----
 include::{testsuite}/server/json/PersonController.java[tags=localError, indent=0]
 ----
 
 <1> A method that explicitly handles `JsonParseException` is declared
-<2> An instance of api:http.hateos.VndError[] is returned which outputs the error in https://github.com/blongden/vnd.error[application/vnd.error+json].
+<2> An instance of api:http.hateos.JsonError[] is returned.
 <3> A custom response is returned to handle the error
 
-Note that the previous example will only handle errors thrown from the declaring controller. To handle errors globally with the api:http.annotation.Error[] annotation:
-
-.Handling Global Errors
+.Local status handler
 [source,java]
 ----
-include::{testsuite}/server/json/PersonController.java[tags=globalError, indent=0]
-----
-
-<1> The api:http.annotation.Error[] is used to declare the method a global error handler
-<2> A api:http.hateos.VndError[] instance is returned for all errors
-<3> An api:http.HttpStatus#INTERNAL_SERVER_ERROR[] response is returned
-
-TIP: You can also specify an exception type to the api:http.annotation.Error[] to add a more specific exception handler
-
-Finally, you can also add global handlers for error status responses:
-
-.Handling Global HTTP Status Errors
-[source,java]
-----
+@Error(status = HttpStatus.NOT_FOUND)
 include::{testsuite}/server/json/PersonController.java[tags=statusError, indent=0]
 ----
 
 <1> The api:http.annotation.Error[] declares which api:http.HttpStatus[] error code to handle (in this case 404)
-<2> A api:http.hateos.VndError[] instance is returned for all 404 responses
+<2> A api:http.hateos.JsonError[] instance is returned for all 404 responses
 <3> An api:http.HttpStatus#NOT_FOUND[] response is returned
 
-IMPORTANT: A few things to note about the api:http.annotation.Error[] annotation. Two id@entical Error annotations that are
-global cannot be declared. Two identical Error annotations that are non-global cannot be declared in the same controller.
-If an Error annotation with the same parameter exists as global and another as a local, the local one will take precedence.
+=== Global Error Handling
+
+.Global error handler
+[source,java]
+----
+@Error(global = true) // <1>
+include::{testsuite}/server/json/PersonController.java[tags=globalError, indent=0]
+----
+
+<1> The api:http.annotation.Error[] is used to declare the method a global error handler
+<2> A api:http.hateos.JsonError[] instance is returned for all errors
+<3> An api:http.HttpStatus#INTERNAL_SERVER_ERROR[] response is returned
+
+.Global status handler
+[source,java]
+----
+@Error(status = HttpStatus.NOT_FOUND, global = true)
+include::{testsuite}/server/json/PersonController.java[tags=statusError, indent=0]
+----
+
+<1> The api:http.annotation.Error[] declares which api:http.HttpStatus[] error code to handle (in this case 404)
+<2> A api:http.hateos.JsonError[] instance is returned for all 404 responses
+<3> An api:http.HttpStatus#NOT_FOUND[] response is returned
+
+IMPORTANT: A few things to note about the api:http.annotation.Error[] annotation. Two identical `@Error` annotations that are
+global cannot be declared. Two identical `@Error` annotations that are non-global cannot be declared in the same controller.
+If an `@Error` annotation with the same parameter exists as global and another as a local, the local one will take precedence.

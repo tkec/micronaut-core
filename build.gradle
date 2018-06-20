@@ -9,12 +9,15 @@ buildscript {
         classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
         classpath 'io.github.groovylang.groovydoc:groovydoc-gradle-plugin:1.0.1'
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.2'
+        classpath "gradle.plugin.io.sdkman:gradle-sdkvendor-plugin:1.0.0"
     }
 }
 
 plugins {
     id 'com.github.hierynomus.license' version '0.14.0' apply false
 }
+
+apply plugin: "io.sdkman.vendors"
 
 repositories {
     maven { url "https://repo.grails.org/grails/core" }
@@ -62,15 +65,34 @@ ext {
                     modules:['jackson-datatype-jsr310']
             ],
             jsr305:[
-                version:jsr305Version,
-                group:'com.google.code.findbugs',
-                name:'jsr305'
+                    version:jsr305Version,
+                    group:'com.google.code.findbugs',
+                    name:'jsr305'
             ],
-            mongodb:[
-                version: mongoVersion,
-                group:'org.mongodb',
-                name:'mongo-java-driver',
-                modules:['mongodb-driver-async']
+            'micrometer.core'    : [
+                    version: micrometerVersion,
+                    group  : 'io.micrometer',
+                    name   : 'micrometer-core'
+            ],
+            'micrometer.atlas'   : [
+                    version: micrometerVersion,
+                    group  : 'io.micrometer',
+                    name   : 'micrometer-registry-atlas'
+            ],
+            'micrometer.graphite': [
+                    version: micrometerVersion,
+                    group  : 'io.micrometer',
+                    name   : 'micrometer-registry-graphite'
+            ],
+            'micrometer.prometheus'   : [
+                    version: micrometerVersion,
+                    group  : 'io.micrometer',
+                    name   : 'micrometer-registry-prometheus'
+            ],
+            'micrometer.statsd'  : [
+                    version: micrometerVersion,
+                    group  : 'io.micrometer',
+                    name   : 'micrometer-registry-statsd'
             ],
             neo4j: [
                 version: neo4jVersion,
@@ -230,9 +252,24 @@ subprojects { subproject ->
     }
 
     tasks.withType(Test) {
+        jvmArgs '-Duser.country=US'
+        jvmArgs '-Duser.language=en'
         testLogging {
-            showStandardStreams = true
             exceptionFormat = 'full'
+        }
+        afterSuite {
+            System.out.print(".")
+            System.out.flush()
+        }
+
+        reports.html.enabled = !System.getenv("TRAVIS")
+        reports.junitXml.enabled = !System.getenv("TRAVIS")
+    }
+
+    tasks.withType(Checkstyle) {
+        reports {
+            xml.enabled = !System.getenv("TRAVIS")
+            html.enabled = !System.getenv("TRAVIS")
         }
     }
 
@@ -289,6 +326,7 @@ apply from:"gradle/docs.gradle"
 // generated bean classes for injection are in <module-dir>/build, not <module-dir>/out
 allprojects {
     apply plugin: 'idea'
+
     idea {
         module {
             outputDir file('build/classes/java/main')
@@ -296,4 +334,67 @@ allprojects {
         }
     }
     apply from: rootProject.file('gradle/license.gradle')
+}
+
+task aggregateReports {
+    group 'verification'
+    doLast() {
+        def html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Micronaut reports</title></head><body><img src='http://micronaut.io/images/micronautlogo.svg' alt='Micronaut'/><ul>"
+        subprojects.each { subproject ->
+            if ( subproject.tasks.find { Task task -> task.name == 'test' } ) {
+              def link = ''
+                if (new File("${subproject.buildDir}/reports/checkstyle").exists()) {
+                    mkdir("${rootProject.buildDir}/reports/${subproject.name}/checkstyle")
+                    copy {
+                        from "${subproject.buildDir}/reports/checkstyle"
+                        into "${rootProject.buildDir}/reports/${subproject.name}/checkstyle"
+                    }
+                    link += " <a href='${subproject.name}/checkstyle/index.html'>checkstyle</a>"
+                }
+              if (new File("${subproject.buildDir}/test-results/test").exists()) {
+                  int failures = 0
+                  int errors = 0
+                  int skipped = 0
+                  int tests = 0
+                  new File("${subproject.buildDir}/test-results/test").eachFile() { file ->
+                      if ( file.name.endsWith('.xml') ) {
+                          def testsuite = new XmlSlurper().parseText(file.text)
+                          failures += "${testsuite['@failures']}" as int
+                          errors += "${testsuite['@errors']}" as int
+                          skipped += "${testsuite['@skipped']}" as int
+                          tests += "${testsuite['@tests']}" as int
+                      }
+                  }
+                  link += " tests: ${tests} skipped: ${skipped} <span style='${errors ? 'color: red;' : ''}'>errors: ${errors}</span> <span style='${failures ? 'color: red;' : ''}'>failures: ${failures}</span>"
+              }
+              if (new File("${subproject.buildDir}/reports/tests/test").exists()) {
+                  mkdir("${rootProject.buildDir}/reports/${subproject.name}/test")
+                  copy {
+                      from "${subproject.buildDir}/reports/tests/test"
+                      into "${rootProject.buildDir}/reports/${subproject.name}/test"
+                  }
+                  link += " <a href='${subproject.name}/test/index.html'>test</a>"
+              }
+
+
+              if (link) {
+                  html += "<li><b>${subproject.name}</b> $link</li>"
+              }
+            }
+        }
+        html += "</ul></body></html>"
+        File f = new File("${rootProject.buildDir}/reports/index.html")
+        f.text = html
+    }
+}
+
+
+sdkman {
+    api = "https://vendors.sdkman.io"
+    consumerKey = System.getenv("GVM_SDKVENDOR_KEY") ?: project.hasProperty("gvmSdkvendorKey") ? project.gvmSdkvendorKey : ''
+    consumerToken = System.getenv("GVM_SDKVENDOR_TOKEN") ?: project.hasProperty("gvmSdkvendorToken") ? project.gvmSdkvendorToken : ''
+    candidate = "micronaut"
+    version = project.version
+    url = "https://github.com/micronaut-projects/micronaut-core/releases/download/v${project.version}/micronaut-${project.version}.zip"
+    hashtag = "#micronautfw"
 }

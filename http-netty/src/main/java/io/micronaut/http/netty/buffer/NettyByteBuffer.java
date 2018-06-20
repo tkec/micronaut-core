@@ -233,4 +233,14 @@ class NettyByteBuffer implements ByteBuffer<ByteBuf>, ReferenceCounted {
     public String toString(Charset charset) {
         return delegate.toString(charset);
     }
+
+    @Override
+    public int indexOf(byte b) {
+        return delegate.bytesBefore(b);
+    }
+
+    @Override
+    public byte getByte(int index) {
+        return delegate.getByte(index);
+    }
 }

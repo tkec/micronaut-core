@@ -24,6 +24,7 @@ import io.micronaut.http.MediaType
 import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.http.client.multipart.MultipartBody
 import io.reactivex.Flowable
+import spock.lang.IgnoreIf
 
 /**
  * @author Graeme Rocher
@@ -258,6 +259,7 @@ class UploadSpec extends AbstractMicronautSpec {
         response.getBody().get() == 'bar: 9'
     }
 
+    @IgnoreIf({ System.getenv("TRAVIS")})
     void "test simple in-memory file upload exceeds size"() {
         given:
         MultipartBody requestBody = MultipartBody.builder()

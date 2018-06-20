@@ -30,7 +30,7 @@ import io.micronaut.runtime.context.scope.Refreshable;
  * @author Graeme Rocher
  * @since 1.0
  */
-@Requires(beans = ReactiveMongoConfiguration.class)
+@Requires(beans = DefaultReactiveMongoConfiguration.class)
 @Factory
 public class DefaultReactiveMongoClientFactory {
 
@@ -42,7 +42,7 @@ public class DefaultReactiveMongoClientFactory {
     @Bean(preDestroy = "close")
     @Refreshable(MongoSettings.PREFIX)
     @Primary
-    MongoClient mongoClient(ReactiveMongoConfiguration mongoConfiguration) {
+    MongoClient mongoClient(DefaultReactiveMongoConfiguration mongoConfiguration) {
         return MongoClients.create(mongoConfiguration.buildSettings());
     }
 }

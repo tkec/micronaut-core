@@ -43,6 +43,7 @@ import io.micronaut.cli.profile.commands.CommandRegistry
 import io.micronaut.cli.profile.repository.MavenProfileRepository
 import io.micronaut.cli.profile.repository.RepositoryConfiguration
 import io.micronaut.cli.util.CliSettings
+import io.micronaut.cli.util.VersionInfo
 import jline.UnixTerminal
 import jline.console.UserInterruptException
 import jline.console.completer.ArgumentCompleter
@@ -69,9 +70,10 @@ class MicronautCli {
     public static final String DEFAULT_PROFILE_NAME = ProfileRepository.DEFAULT_PROFILE_NAME
     private static final int KEYPRESS_CTRL_C = 3
     private static final int KEYPRESS_ESC = 27
-    private static final String USAGE_MESSAGE = "create-service [NAME]"
+    private static final String USAGE_MESSAGE = "create-app [NAME]"
     private static
     final String FEDERATION_USAGE_MESSAGE = "create-federation [NAME] --services [SERVICE_NAME],[SERVICE_NAME],..."
+    final String FUNCTION_USAGE_MESSAGE = "create-function [NAME]"
     private final SystemStreamsRedirector originalStreams = SystemStreamsRedirector.original()
     // store original System.in, System.out and System.err
     private static ExecutionContext currentExecutionContext = null
@@ -178,7 +180,7 @@ class MicronautCli {
     }
 
     private int getBaseUsage() {
-        System.out.println "Usage: \n\t $USAGE_MESSAGE \n\t $FEDERATION_USAGE_MESSAGE \n\n"
+        System.out.println "Usage: \n\t $USAGE_MESSAGE \n\t $FEDERATION_USAGE_MESSAGE \n\t $FUNCTION_USAGE_MESSAGE  \n\n"
         this.execute "list-profiles"
         System.out.println "\nType 'mn help' or 'mn -h' for more information."
 
@@ -204,8 +206,7 @@ class MicronautCli {
 
         if (mainCommandLine.hasOption(CommandLine.VERSION_ARGUMENT) || mainCommandLine.hasOption('v')) {
             def console = MicronautConsole.instance
-            console.addStatus("Micronaut Version: ${MicronautCli.getPackage().implementationVersion}")
-            console.addStatus("Groovy Version: ${GroovySystem.version}")
+            console.addStatus("Micronaut Version: ${VersionInfo.getVersion(MicronautCli)}")
             console.addStatus("JVM Version: ${System.getProperty('java.version')}")
             exit(0)
         }
@@ -350,9 +351,9 @@ class MicronautCli {
 
                 def mainCommandLine = context.getCommandLine()
                 if (mainCommandLine.hasOption(CommandLine.STACKTRACE_ARGUMENT)) {
-                    console.setStacktrace(true);
+                    console.setStacktrace(true)
                 } else {
-                    console.setStacktrace(false);
+                    console.setStacktrace(false)
                 }
 
                 if (mainCommandLine.hasOption(CommandLine.VERBOSE_ARGUMENT)) {

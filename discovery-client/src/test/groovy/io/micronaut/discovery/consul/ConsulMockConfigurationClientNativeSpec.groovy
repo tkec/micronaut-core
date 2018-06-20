@@ -19,7 +19,6 @@ import io.micronaut.context.ApplicationContext
 import io.micronaut.context.env.Environment
 import io.micronaut.context.env.EnvironmentPropertySource
 import io.micronaut.context.env.PropertySource
-import io.micronaut.core.io.socket.SocketUtils
 import io.micronaut.discovery.config.ConfigurationClient
 import io.micronaut.discovery.consul.client.v1.ConsulClient
 import io.micronaut.discovery.consul.config.ConsulConfigurationClient
@@ -37,13 +36,9 @@ import spock.lang.Stepwise
  */
 @Stepwise
 class ConsulMockConfigurationClientNativeSpec extends Specification {
-    @Shared
-    int serverPort = SocketUtils.findAvailableTcpPort()
-
     @AutoCleanup
     @Shared
     EmbeddedServer consulServer = ApplicationContext.run(EmbeddedServer, [
-            'micronaut.server.port'                   : serverPort,
             (MockConsulServer.ENABLED):true
     ])
 
@@ -53,7 +48,7 @@ class ConsulMockConfigurationClientNativeSpec extends Specification {
             [
                     (ConfigurationClient.ENABLED): true,
                     'consul.client.host': 'localhost',
-                    'consul.client.port': serverPort]
+                    'consul.client.port': consulServer.getPort()]
     )
 
     @Shared

@@ -18,11 +18,13 @@ package io.micronaut.cli.profile
 
 import groovy.transform.CompileStatic
 import groovy.transform.EqualsAndHashCode
+import groovy.transform.InheritConstructors
 import groovy.transform.ToString
 import io.micronaut.cli.config.NavigableMap
 import io.micronaut.cli.io.support.Resource
 import org.eclipse.aether.artifact.DefaultArtifact
 import org.eclipse.aether.graph.Dependency
+import org.eclipse.aether.graph.Exclusion
 import org.yaml.snakeyaml.Yaml
 
 /**
@@ -31,6 +33,7 @@ import org.yaml.snakeyaml.Yaml
  * @author Graeme Rocher
  * @since 1.0
  */
+@InheritConstructors
 @EqualsAndHashCode(includes = ['name'])
 @ToString(includes = ['profile', 'name'])
 @CompileStatic
@@ -43,6 +46,8 @@ class DefaultFeature implements Feature {
     final List<String> buildPlugins
     final List<String> dependentFeatures = []
     private Boolean requested = false
+    final Integer minJava
+    final Integer maxJava
 
     DefaultFeature(Profile profile, String name, Resource location) {
         this.profile = profile
@@ -54,22 +59,36 @@ class DefaultFeature implements Feature {
         def dependencyMap = configuration.get("dependencies")
         dependentFeatures.addAll((List) configuration.get("dependentFeatures", Collections.emptyList()))
 
-        if (dependencyMap instanceof Map) {
-            for (entry in ((Map) dependencyMap)) {
-                def scope = entry.key
-                def value = entry.value
-                if (value instanceof List) {
-                    for (dep in ((List) value)) {
-                        String coords = dep.toString()
-                        if (coords.count(':') == 1) {
-                            coords = "$coords:BOM"
-                        }
-                        dependencies.add new Dependency(new DefaultArtifact(coords), scope.toString())
+        if (dependencyMap instanceof List) {
+
+            for (entry in ((List) dependencyMap)) {
+                if (entry instanceof Map) {
+                    def scope = (String)entry.scope
+                    String coords = (String)entry.coords
+
+                    if (coords.count(':') == 1) {
+                        coords = "$coords:BOM"
                     }
+                    Dependency dependency = new Dependency(new DefaultArtifact(coords), scope.toString())
+                    if (entry.containsKey('excludes')) {
+                        List<Exclusion> dependencyExclusions = new ArrayList<>()
+                        List excludes = (List)entry.excludes
+
+                        for (ex in excludes) {
+                            if (ex instanceof Map) {
+                                dependencyExclusions.add(new Exclusion((String)ex.group, (String)ex.module, (String)ex.classifier, (String)ex.extension))
+                            }
+                        }
+                        dependency = dependency.setExclusions(dependencyExclusions)
+                    }
+                    dependencies.add(dependency)
                 }
             }
         }
         this.buildPlugins = (List<String>) configuration.get("build.plugins", [])
+
+        this.minJava = (Integer) configuration.get("java.min") ?: null
+        this.maxJava = (Integer) configuration.get("java.max") ?: null
     }
 
     @Override
@@ -83,6 +102,16 @@ class DefaultFeature implements Feature {
     }
 
     @Override
+    Integer getMinJavaVersion() {
+        minJava
+    }
+
+    @Override
+    Integer getMaxJavaVersion() {
+        maxJava
+    }
+
+    @Override
     void setRequested(Boolean r) {
         requested = r
     }
@@ -90,5 +119,21 @@ class DefaultFeature implements Feature {
     @Override
     Boolean getRequested() {
         requested
+    }
+
+    @Override
+    boolean isSupported(Integer javaVersion) {
+        if (minJavaVersion != null) {
+            if (maxJavaVersion != null) {
+                return javaVersion >= minJavaVersion && javaVersion <= maxJavaVersion
+            } else {
+                return javaVersion >= minJavaVersion
+            }
+        }
+        if (maxJavaVersion != null) {
+            return javaVersion <= maxJavaVersion
+        }
+
+        true
     }
 }

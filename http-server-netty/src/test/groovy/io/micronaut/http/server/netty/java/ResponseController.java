@@ -15,9 +15,6 @@
  */
 package io.micronaut.http.server.netty.java;
 
-import io.micronaut.http.HttpMethod;
-import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
 import io.micronaut.http.*;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -70,6 +67,10 @@ public class ResponseController {
     @Get
     public HttpMessage status() {
         return HttpResponse.status(HttpStatus.MOVED_PERMANENTLY);
+    }
 
+    @Get
+    public HttpResponse customHeaders() {
+       return HttpResponse.ok("abc").contentType("text/plain").contentLength(7);
     }
 }

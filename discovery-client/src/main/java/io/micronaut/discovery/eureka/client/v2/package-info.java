@@ -15,6 +15,8 @@
  */
 
 /**
+ * This package contains Eureka client classes.
+ *
  * @author graemerocher
  * @since 1.0
  */

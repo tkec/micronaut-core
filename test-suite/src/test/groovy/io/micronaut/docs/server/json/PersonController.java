@@ -28,7 +28,6 @@ import io.micronaut.http.hateos.JsonError;
 import io.micronaut.http.hateos.Link;
 import io.reactivex.*;
 
-import javax.inject.Singleton;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -96,6 +95,7 @@ public class PersonController {
     // end::regular[]
 
     // tag::localError[]
+    @Error
     public HttpResponse<JsonError> jsonError(HttpRequest request, JsonParseException jsonParseException) { // <1>
         JsonError error = new JsonError("Invalid JSON: " + jsonParseException.getMessage()) // <2>
                 .link(Link.SELF, Link.of(request.getUri()));
@@ -111,8 +111,8 @@ public class PersonController {
         throw new RuntimeException("Something went wrong");
     }
 
-    // tag::globalError[]
     @Error // <1>
+    // tag::globalError[]
     public HttpResponse<JsonError> error(HttpRequest request, Throwable e) {
         JsonError error = new JsonError("Bad Things Happened: " + e.getMessage()) // <2>
                 .link(Link.SELF, Link.of(request.getUri()));
@@ -122,8 +122,8 @@ public class PersonController {
     }
     // end::globalError[]
 
-    // tag::statusError[]
     @Error(status = HttpStatus.NOT_FOUND)
+    // tag::statusError[]
     public HttpResponse<JsonError> notFound(HttpRequest request) { // <1>
         JsonError error = new JsonError("Page Not Found") // <2>
                 .link(Link.SELF, Link.of(request.getUri()));

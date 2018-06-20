@@ -37,7 +37,7 @@ class HeartbeatTaskSpec extends Specification {
                 'micronaut.application.name':'test'
         ])
         HeartbeatListener listener = embeddedServer.getApplicationContext().getBean(HeartbeatListener)
-        PollingConditions conditions = new PollingConditions(delay: 0.5)
+        PollingConditions conditions = new PollingConditions(timeout: 5, delay: 0.5)
 
         then:
         conditions.eventually {
@@ -51,10 +51,16 @@ class HeartbeatTaskSpec extends Specification {
 
     @Singleton
     static class HeartbeatListener implements ApplicationEventListener<HeartbeatEvent> {
-        HeartbeatEvent event
+        private HeartbeatEvent event
         @Override
-        void onApplicationEvent(HeartbeatEvent event) {
+        synchronized void onApplicationEvent(HeartbeatEvent event) {
+            println "Test Heartbeat listener $this received event $event"
             this.event = event
+        }
+
+        synchronized HeartbeatEvent getEvent() {
+            println "Test Heartbeat listener $this return event $event"
+            return event
         }
     }
 }

@@ -42,6 +42,14 @@ The following table summarizes the constants provided by the api:context.env.Env
 |Running on https://www.cloudfoundry.org[Cloud Foundry]
 |`@Requires(env = Environment.CLOUD_FOUNDRY)`
 
+|api:context.env.Environment#AZURE[]
+|Running on https://azure.microsoft.com[Microsoft Azure]
+|`@Requires(env = Environment.AZURE)`
+
+|api:context.env.Environment#IBM[]
+|Running on https://www.ibm.com/cloud/[IBM Cloud]
+|`@Requires(env = Environment.IBM)`
+
 |===
 
 Note that it may be that case that you have multiple active environment names since you may run Kubernetes on AWS for example.
@@ -51,7 +59,7 @@ In addition, using the value of the constants defined in the table above you can
 TIP: Any configuration property in the api:context.env.Environment[] can also be set via an environment variable. For example, setting the `CONSUL_CLIENT_HOST` environment variable will override the `host` property in api:discovery.consul.ConsulConfiguration[].
 
 
-==== Using Cloud Instance Metadata
+== Using Cloud Instance Metadata
 
 
 When Micronaut detects it is running on Google Compute or AWS EC2, upon startup Micronaut will populate the interface api:discovery.cloud.ComputeInstanceMetadata[].
@@ -82,7 +90,7 @@ Flowable.fromPublisher(
 ----
 
 
-To obtain metadata for the locally running server use the api:runtime.server.EmbeddedServiceInstance[] interface:
+To obtain metadata for the locally running server use the api:runtime.server.EmbeddedServerInstance[] interface:
 
 
 .Obtaining Metadata for a Local Server

@@ -14,3 +14,4 @@ dependencies {
     testCompile project(":http-server-netty")
     testRuntime project(":configurations:hibernate-validator")
 }
+
